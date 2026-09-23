@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Vendor } from '../lib/catalog';
 import type { MatchRequest } from '../lib/contract';
 import { money } from '../lib/explanations';
+import { matchingVerb, profileCount } from '../lib/wording';
 import { buildSuggestions, CALENDAR_END, CALENDAR_START, fitsNonDateConditions } from '../lib/suggestions';
 
 const request: MatchRequest = { city: 'Алматы', date: '2026-11-14', eventType: 'свадьба', category: 'ведущий', budget: 100 };
@@ -22,7 +23,7 @@ function reference(input: MatchRequest, vendors: readonly Vendor[], currentCount
       if (candidate < CALENDAR_START || candidate > CALENDAR_END) continue;
       const count = pool.filter(item => !item.busyDates.includes(candidate)).length;
       if (count > currentCount) {
-        dateSuggestion = `На ${candidate} подходят ${count}: все остальные условия сохранены (сейчас ${currentCount}).`;
+        dateSuggestion = `На ${candidate} ${matchingVerb(count)} ${profileCount(count)}: все остальные условия сохранены (сейчас ${currentCount}).`;
         break outer;
       }
     }
@@ -32,7 +33,7 @@ function reference(input: MatchRequest, vendors: readonly Vendor[], currentCount
   const nextPrice = Math.min(...overBudget.map(item => item.priceFrom));
   const added = overBudget.filter(item => item.priceFrom <= nextPrice).length;
   return [dateSuggestion, added > 0
-    ? `При бюджете +${money(nextPrice - input.budget)} ₸ (до ${money(nextPrice)} ₸) подходят ещё ${added}: остальные условия сохранены. Цена «от»; итоговую стоимость уточните.`
+    ? `При бюджете +${money(nextPrice - input.budget)} ₸ (до ${money(nextPrice)} ₸) ${matchingVerb(added)} ещё ${profileCount(added)}: остальные условия сохранены. Цена «от»; итоговую стоимость уточните.`
     : null].filter((item): item is string => item !== null);
 }
 
@@ -40,7 +41,7 @@ describe('suggestions preserve exhaustive behavior at scale', () => {
   it('handles a million over-budget candidates without argument-stack overflow', () => {
     const vendors = Array.from({ length: 1_000_000 }, () => vendor({ priceFrom: 110 }));
     expect(buildSuggestions(request, vendors, 0)).toEqual([
-      'При бюджете +10 ₸ (до 110 ₸) подходят ещё 1000000: остальные условия сохранены. Цена «от»; итоговую стоимость уточните.',
+      'При бюджете +10 ₸ (до 110 ₸) подходят ещё 1000000 профилей: остальные условия сохранены. Цена «от»; итоговую стоимость уточните.',
     ]);
   });
 
@@ -77,6 +78,6 @@ describe('suggestions preserve exhaustive behavior at scale', () => {
   it('chooses the later date in a tie and counts duplicate busy dates only once', () => {
     const vendors = [vendor({ busyDates: [request.date, '2026-11-15', '2026-11-15'] }), vendor({ busyDates: [request.date] })];
     expect(buildSuggestions(request, vendors, 0)).toEqual(reference(request, vendors, 0));
-    expect(buildSuggestions(request, vendors, 0)[0]).toContain('2026-11-15 подходят 1');
+    expect(buildSuggestions(request, vendors, 0)[0]).toContain('2026-11-15 подходит 1 профиль');
   });
 });
