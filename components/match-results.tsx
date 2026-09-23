@@ -1,4 +1,4 @@
-import type { Card, MatchResponse } from "@/lib/contract";
+import type { Card, MatchResponse, SuggestionAction } from "@/lib/contract";
 
 const money = (value: number) => new Intl.NumberFormat("ru-RU").format(value);
 const outcomeLabels = {
@@ -14,9 +14,6 @@ function VendorCard({ card, index }: { card: Card; index: number }) {
     <article className="vendor-card contractor" data-testid="match-card">
       <div className="card-top">
         <span className="card-number">0{index + 1}</span>
-        <span className="match-count">
-          Условия: {card.matched.length} из {card.total}
-        </span>
       </div>
       <p className="card-category">{card.categories.join(" · ")}</p>
       <h3>{card.name}</h3>
@@ -28,11 +25,14 @@ function VendorCard({ card, index }: { card: Card; index: number }) {
         <span className="eyebrow">Почему в подборке</span>
         <p>{card.explanation}</p>
       </div>
-      <ul className="matched-list" aria-label="Совпавшие условия">
+      <details className="card-facts">
+        <summary>Все условия профиля</summary>
+        <ul className="matched-list" aria-label="Совпавшие условия">
         {card.matched.map((fact, i) => (
           <li key={`${fact}-${i}`}>{fact}</li>
         ))}
-      </ul>
+        </ul>
+      </details>
       <div className="data-labels">
         <span>
           {card.synthetic ? "Синтетический профиль" : "Исходный профиль"}
@@ -40,9 +40,6 @@ function VendorCard({ card, index }: { card: Card; index: number }) {
         {card.priceImputed && <span>Цена подставлена в датасете</span>}
         {card.cityImputed && <span>Город подставлен в датасете</span>}
       </div>
-      <p className="card-note">
-        Цена «от» — нижняя граница, итоговую смету нужно уточнить.
-      </p>
     </article>
   );
 }
@@ -51,10 +48,14 @@ export function MatchResults({
   result,
   date,
   testId = "match-results",
+  loading = false,
+  onApplySuggestion,
 }: {
   result: MatchResponse;
   date: string;
   testId?: string;
+  loading?: boolean;
+  onApplySuggestion?: (action: SuggestionAction) => void;
 }) {
   const formattedDate = new Intl.DateTimeFormat("ru-RU", {
     day: "numeric",
@@ -78,6 +79,7 @@ export function MatchResults({
           <VendorCard key={card.id} card={card} index={index} />
         ))}
       </div>
+      {result.cards.length > 0 && <p className="card-note">Цены указаны «от»; итоговую смету и доступность нужно подтвердить у подрядчика.</p>}
       {result.cards.length === 0 && (
         <div className="empty-result">
           <span aria-hidden="true">∅</span>
@@ -92,6 +94,11 @@ export function MatchResults({
               <li key={i}>{item}</li>
             ))}
           </ul>
+          {onApplySuggestion && result.suggestionActions?.map((action) => (
+            <button className="suggestion-action" type="button" disabled={loading} key={action.label} onClick={() => onApplySuggestion(action)}>
+              {action.label}
+            </button>
+          ))}
         </aside>
       )}
       <details className="funnel">

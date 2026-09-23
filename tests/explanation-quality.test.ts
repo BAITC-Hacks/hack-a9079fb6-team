@@ -7,11 +7,23 @@ import demos from '../fixtures/demo-queries.json';
 const quote = (text: string) => text.match(/В описании профиля: «(.*)»\.$/u)?.[1].replace(/…$/u, '');
 
 describe('useful, grounded explanation text', () => {
+  it('does not repeat date, format and price already shown in card fields', () => {
+    const card = matchVendors(demos.dense).cards[0];
+    expect(card.explanation).not.toContain(demos.dense.date);
+    expect(card.explanation).not.toContain('формат «');
+    expect(card.explanation).not.toContain('цена от');
+  });
+  it('rejects figurative language claims as evidence and admits missing details', () => {
+    const source = { ...loadVendors()[0], description: 'Легко находим общий язык с любой публикой.' };
+    const card = explainVendor(source, [source], demos.rare);
+    expect(quote(card.explanation)).toBeUndefined();
+    expect(card.explanation).toContain('конкретных сведений');
+  });
   it('explains a higher price through a real duration difference and quotes complete experience', () => {
     const card = matchVendors(demos.dense).cards.find(card => card.id === 'HK-42352')!;
     expect(card.explanation).toMatch(/^До 10 ч против максимум 8 ч у более дешёвых профилей среди показанных/u);
     expect(quote(card.explanation)).toBe('Опыт ведения свадеб 13 лет');
-    expect(card.explanation).toContain('(оценочная)');
+    expect(card.priceImputed).toBe(true);
   });
   it('prefers concrete services and photographic style over introductions', () => {
     const vendors = loadVendors();
@@ -45,8 +57,8 @@ describe('useful, grounded explanation text', () => {
       const vendor = loadVendors().find(vendor => vendor.id === id)!;
       const card = explainVendor(vendor, [vendor], { ...demos.dense, category: vendor.categories[0] });
       expect(quote(card.explanation)).toBeUndefined();
-      expect(card.explanation).toContain('занятость не отмечена');
-      expect(card.explanation).toContain('цена от');
+      expect(card.explanation).toContain('конкретных сведений');
+      expect(card.matched.join(' ')).toContain('занятость не отмечена');
       expect(card.explanation).not.toMatch(/сверкаем|№1/u);
     }
   });

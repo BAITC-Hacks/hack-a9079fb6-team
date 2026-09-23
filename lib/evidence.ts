@@ -1,6 +1,7 @@
 import type { Vendor } from './catalog';
 import type { MatchRequest } from './contract';
 import { relevance } from './ranking';
+import { wishScorer } from './text-relevance';
 
 const MAX_QUOTE_LENGTH = 140;
 const features: readonly [RegExp, number][] = [
@@ -25,6 +26,7 @@ function excerpt(source: string): string {
 
 function usefulness(text: string, request: MatchRequest): number {
   const lower = text.toLocaleLowerCase('ru');
+  if (/общ(?:ий|его|ему|ем|им)\s+язык/u.test(lower)) return -1;
   const specifics = features.reduce((sum, [pattern, weight]) => sum + (pattern.test(lower) ? weight : 0), 0);
   const introduction = /меня зовут|^являюсь|^мы\s*[—–-]|^я\s*(?:[—–-]\s*)?(?:свадебн|профессиональн|ведущий|фотограф)/u.test(lower);
   const advertising = /№\s*1|топ[-\s]?\d|лучш|идеальн|незабываем|гарантир|безупреч/u.test(lower);
@@ -37,7 +39,8 @@ export function profileEvidence(vendor: Vendor, shown: readonly Vendor[], reques
   const fragments = vendor.description.split(/(?<=[.!?])\s+|\n+|•|(?<=лет)\s+(?=[А-ЯЁ][а-яё]+\s)/u)
     .map(text => text.trim()).filter(Boolean).map(excerpt).filter(Boolean);
   const others = shown.filter(other => other.id !== vendor.id).map(other => other.description.toLocaleLowerCase('ru'));
-  const candidates = fragments.map((text, index) => ({ text, index, score: usefulness(text, request) }))
+  const checkWish = wishScorer(request.wish ?? '');
+  const candidates = fragments.map((text, index) => ({ text, index, score: checkWish(text).conflict ? -1 : usefulness(text, request) }))
     .filter(candidate => candidate.score > 0);
   const distinctive = candidates.filter(candidate => candidate.score > 0 &&
     others.every(description => !description.includes(candidate.text.replace(/…$/u, '').toLocaleLowerCase('ru'))));

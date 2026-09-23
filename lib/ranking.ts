@@ -1,5 +1,6 @@
 import type { Vendor } from './catalog';
 import type { MatchRequest } from './contract';
+import { normalizeText, wishScorer } from './text-relevance';
 
 const eventStems: Record<string, string[]> = {
   'свадьба': ['свадьб', 'свадеб'], 'той': ['той', 'тоя'],
@@ -7,12 +8,12 @@ const eventStems: Record<string, string[]> = {
   'юбилей': ['юбиле'], 'день рождения': ['рождени'],
 };
 function relevanceScorer(request: MatchRequest): (text: string) => number {
-  const event = eventStems[request.eventType] ?? [request.eventType.toLocaleLowerCase('ru')];
-  const wishes = [...new Set((request.wish ?? '').toLocaleLowerCase('ru').match(/[а-яёa-z]{4,}/gu) ?? [])];
+  const event = eventStems[request.eventType] ?? [normalizeText(request.eventType)];
+  const wishes = wishScorer(request.wish ?? '');
   return text => {
-    const normalized = text.toLocaleLowerCase('ru').replaceAll('ё', 'е');
+    const normalized = normalizeText(text);
     return Number(event.some(stem => normalized.includes(stem))) +
-      wishes.filter(word => normalized.includes(word)).length;
+      wishes(text).score;
   };
 }
 /** Transparent lexical matching, not semantic AI or a suitability percentage. */

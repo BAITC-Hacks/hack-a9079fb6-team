@@ -108,7 +108,7 @@ test("storage unavailable does not block independent city-card flow", async ({
   await page.locator(".assistant-toggle").click();
   await page.locator(".city-card").filter({ hasText: "Астана" }).click();
   await page
-    .getByRole("button", { name: "Подобрать подрядчиков", exact: true })
+    .getByRole("button", { name: "Выбрать формат", exact: true })
     .click();
   await page.locator(".event-card").filter({ hasText: "Свадьба" }).click();
   await page

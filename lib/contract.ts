@@ -16,12 +16,17 @@ export type Card = {
   matched: string[]; total: number;
   explanation: string; explanationSource: 'llm' | 'template';
 };
+export type SuggestionAction = {
+  label: string;
+  changes: Partial<Pick<MatchRequest, 'date' | 'budget' | 'city'>>;
+};
 export type MatchResponse = {
   outcome: Outcome;
   message: string;
   cards: Card[];
   funnel: { step: string; left: number; dropped: { reason: string; count: number }[] }[];
   suggestions: string[];
+  suggestionActions?: SuggestionAction[];
 };
 export type CompareResponse = {
   first: MatchResponse;

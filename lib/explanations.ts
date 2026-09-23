@@ -1,6 +1,7 @@
 import type { Vendor } from './catalog';
 import type { Card, MatchRequest } from './contract';
 import { profileEvidence } from './evidence';
+import { wishScorer } from './text-relevance';
 
 export const money = (value: number): string => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
@@ -18,14 +19,16 @@ function contrast(vendor: Vendor, shown: readonly Vendor[]): string {
   if (vendor.maxHours !== null && cheaper.length && cheaper.every(other => other.maxHours !== null && other.maxHours < vendor.maxHours!)) {
     return `До ${vendor.maxHours} ч против максимум ${Math.max(...cheaper.map(other => other.maxHours!))} ч у более дешёвых профилей среди показанных`;
   }
-  return vendor.maxHours === null ? `Языки работы: ${vendor.languages.join(', ')}`
-    : `В каталоге указаны длительность до ${vendor.maxHours} ч и языки: ${vendor.languages.join(', ')}`;
+  return 'Среди показанных нет подтверждённого преимущества по цене, длительности или языкам';
 }
 
 /** Quote one useful source phrase; do not turn vendor advertising into our guarantee. */
 function quote(vendor: Vendor, shown: readonly Vendor[], request: MatchRequest): string {
+  const conflict = wishScorer(request.wish ?? '')(vendor.description).conflict;
+  if (conflict) return ` Есть противоречие пожеланиям; в описании профиля: «${conflict.replace(/[.!?]+$/u, '')}».`;
   const fragment = profileEvidence(vendor, shown, request);
-  return fragment ? ` В описании профиля: «${fragment}».` : '';
+  return fragment ? ` В описании профиля: «${fragment}».`
+    : ' В описании нет конкретных сведений для дополнительного сравнения.';
 }
 
 export function explainVendor(vendor: Vendor, shown: readonly Vendor[], request: MatchRequest): Card {
@@ -41,7 +44,7 @@ export function explainVendor(vendor: Vendor, shown: readonly Vendor[], request:
     id: vendor.id, name: vendor.name, categories: [...vendor.categories], city: vendor.city,
     priceFrom: vendor.priceFrom, synthetic: vendor.synthetic, cityImputed: vendor.cityImputed,
     priceImputed: vendor.priceImputed, matched, total: matched.length,
-    explanation: `${contrast(vendor, shown)}; формат «${request.eventType}», цена от ${money(vendor.priceFrom)} ₸${vendor.priceImputed ? ' (оценочная)' : ''}; на ${request.date} занятость не отмечена.${quote(vendor, shown, request)}`,
+    explanation: `${contrast(vendor, shown)}.${quote(vendor, shown, request)}`,
     explanationSource: 'template',
   };
 }

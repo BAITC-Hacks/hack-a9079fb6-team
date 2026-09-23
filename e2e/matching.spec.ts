@@ -24,7 +24,7 @@ test('three demo journeys, deterministic repeat and two dates', async ({ page })
 test('responsive form and empty category state', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Подобрать подрядчиков', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Выбрать формат', exact: true })).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   const response=await page.request.post('/api/match',{data:{city:'Астана',date:'2026-10-15',eventType:'свадьба',category:'Декоратор',budget:2000000}});
   expect(response.ok()).toBeTruthy();expect((await response.json()).outcome).toBe('no_category_in_city');

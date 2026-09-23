@@ -5,6 +5,7 @@ import type {
   CompareResponse,
   MatchRequest,
   MatchResponse,
+  SuggestionAction,
 } from "@/lib/contract";
 import fixtures from "@/fixtures/demo-queries.json";
 import citiesImage from "./assets/cities.png";
@@ -12,79 +13,7 @@ import { MatchResults } from "./match-results";
 import { Icon } from "./ui-icon";
 import { OnboardingAssistant } from "./onboarding-assistant";
 import { EventDatePicker, BudgetPicker } from "./event-controls";
-
-type FormValues = {
-  city: string;
-  eventType: string;
-  date: string;
-  category: string;
-  budget: string;
-  hours: string;
-  language: string;
-  wish: string;
-};
-type Result = {
-  request: MatchRequest;
-  first: MatchResponse;
-  second?: MatchResponse;
-  secondDate?: string;
-  removed: CompareResponse["removed"];
-};
-const initial: FormValues = {
-  city: "",
-  eventType: "",
-  date: "2026-10-15",
-  category: "Ведущий",
-  budget: "1000000",
-  hours: "",
-  language: "",
-  wish: "",
-};
-const toForm = (q: MatchRequest): FormValues => ({
-  city: q.city,
-  eventType: q.eventType,
-  date: q.date,
-  category: q.category,
-  budget: String(q.budget),
-  hours: q.hours === undefined ? "" : String(q.hours),
-  language: q.language ?? "",
-  wish: q.wish ?? "",
-});
-const toRequest = (q: FormValues): MatchRequest => ({
-  city: q.city,
-  eventType: q.eventType,
-  date: q.date,
-  category: q.category,
-  budget: Number(q.budget),
-  ...(q.hours ? { hours: Number(q.hours) } : {}),
-  ...(q.language ? { language: q.language } : {}),
-  ...(q.wish.trim() ? { wish: q.wish.trim() } : {}),
-});
-const titles = [
-  "Где пройдёт\nваше событие?",
-  "Какой повод\nнас объединит?",
-  "Добавим важные\nдетали.",
-  "Вот кто подходит\nвашему событию.",
-];
-const leads = [
-  "Выберите город — здесь начнётся ваша история.",
-  "Большой день или тёплый вечер. Выберите свой формат.",
-  "Учитываем свободную дату, формат и ваш бюджет.",
-  "До трёх вариантов с понятной причиной для каждого.",
-];
-const eventInfo: Record<string, [string, string]> = {
-  свадьба: ["Для большого «да»", "heart"],
-  той: ["Когда рядом все свои", "spark"],
-  корпоратив: ["Вне рабочих чатов", "people"],
-  конференция: ["Для идей и встреч", "mic"],
-  юбилей: ["Важная дата, близкие люди", "flower"],
-  "день рождения": ["Ещё один прекрасный год", "spark"],
-};
-const demos = [
-  { key: "dense", label: "Популярная категория", detail: "Ведущие · Алматы" },
-  { key: "rare", label: "Редкая категория", detail: "Флористы · Алматы" },
-  { key: "none_pass", label: "Никто не подходит", detail: "Залы · декабрь" },
-] as const;
+import { initial, toForm, toRequest, titles, leads, eventInfo, demos, resultTitle, RequestError, type FormValues, type Result } from "./event-form";
 
 export function EventOnboarding() {
   const [form, setForm] = useState<FormValues>(initial);
@@ -169,9 +98,7 @@ export function EventOnboarding() {
           setCatalogError(
             controller.signal.aborted
               ? "Каталог не ответил за 10 секунд. Повторите загрузку."
-              : cause instanceof Error
-                ? cause.message
-                : "Ошибка загрузки каталога.",
+              : "Не удалось загрузить каталог. Проверьте соединение и повторите загрузку.",
           );
       })
       .finally(() => clearTimeout(timeout));
@@ -244,7 +171,7 @@ export function EventOnboarding() {
       });
       const payload = await response.json();
       if (!response.ok)
-        throw new Error(
+        throw new RequestError(
           [
             payload.error || "Подбор не выполнен.",
             ...(payload.fields || []).map(
@@ -271,9 +198,9 @@ export function EventOnboarding() {
       setError(
         controller.signal.aborted
           ? "Подбор занял больше 10 секунд. Попробуйте ещё раз."
-          : cause instanceof Error
+          : cause instanceof RequestError
             ? cause.message
-            : "Ошибка соединения. Попробуйте ещё раз.",
+            : "Не удалось получить подбор. Проверьте соединение и повторите запрос.",
       );
       setAnnouncement("Подбор не выполнен. Можно повторить запрос.");
     } finally {
@@ -296,6 +223,19 @@ export function EventOnboarding() {
     setCompare(false);
     void run(toRequest(values), false);
   }
+  function applySuggestion(action: SuggestionAction, base: MatchRequest) {
+    const request = { ...base, ...action.changes };
+    setForm(toForm(request));
+    setCompare(false);
+    setResult(null);
+    setStep(2);
+    void run(request, false);
+  }
+  function retry() {
+    if (step === 2) {
+      (document.getElementById("details-form") as HTMLFormElement | null)?.requestSubmit();
+    } else void run(toRequest(form));
+  }
   function restart() {
     cancel();
     setForm({ ...initial });
@@ -313,7 +253,7 @@ export function EventOnboarding() {
       (compare && result.secondDate !== secondDate));
   const primaryLabel =
     step === 0
-      ? "Подобрать подрядчиков"
+      ? "Выбрать формат"
       : step === 1
         ? "Перейти к деталям"
         : compare
@@ -348,7 +288,7 @@ export function EventOnboarding() {
             </button>
           ))}
         </nav>
-        <button
+        {step < 3 && <button
           className="assistant-toggle"
           ref={toggleRef}
           aria-controls={assistant ? "assistant" : undefined}
@@ -357,23 +297,23 @@ export function EventOnboarding() {
         >
           <Icon name="chat" size={17} />
           {assistant ? "Скрыть диалог" : "Вернуть помощника"}
-        </button>
+        </button>}
       </header>
-      <main className={`layout ${assistant ? "" : "without-assistant"}`}>
+      <main className={`layout ${step === 3 ? "layout-results" : assistant ? "" : "without-assistant"}`}>
         <section className="stage" id="stage" ref={stageRef} tabIndex={-1}>
           <div className="eyebrow">
             <span />
             Ваше событие начинается здесь
           </div>
           <div className="chosen">
-            {form.city && (
+            {step < 3 && form.city && (
               <button onClick={() => move(0)}>
                 <Icon name="pin" size={14} />
                 {form.city}
                 <span>Изменить</span>
               </button>
             )}
-            {form.eventType && (
+            {step < 3 && form.eventType && (
               <button onClick={() => move(1)}>
                 <Icon name="spark" size={14} />
                 {form.eventType}
@@ -382,14 +322,14 @@ export function EventOnboarding() {
             )}
           </div>
           <h1>
-            {titles[step].split("\n").map((line, index) => (
+            {(step === 3 ? resultTitle(result) : titles[step]).split("\n").map((line, index) => (
               <span key={line}>
                 {index > 0 && <br />}
                 {line}
               </span>
             ))}
           </h1>
-          <p className="lead">{leads[step]}</p>
+          <p className="lead">{step === 3 ? "Сравните причины выбора или измените условия." : leads[step]}</p>
           {catalogError && (
             <div role="alert" className="error-box">
               <p>{catalogError}</p>
@@ -592,7 +532,17 @@ export function EventOnboarding() {
             )}
             {step === 3 && result && (
               <>
-                <form className="comparison-form" onSubmit={submit}>
+                <div className="request-summary" aria-label="Условия подбора">
+                  <span>{result.request.city}</span>
+                  <span>{result.request.eventType}</span>
+                  <span>{result.request.category}</span>
+                  <span>Бюджет до {String(result.request.budget).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} ₸</span>
+                  {result.request.hours && <span>{result.request.hours} ч</span>}
+                  {result.request.language && <span>{result.request.language}</span>}
+                  {result.request.wish && <span>Пожелание: «{result.request.wish}»</span>}
+                  <button type="button" onClick={() => move(2)}>Изменить условия</button>
+                </div>
+                <form className="comparison-form result-toolbar" onSubmit={submit}>
                   <label className="compare-toggle">
                     <input
                       type="checkbox"
@@ -660,12 +610,16 @@ export function EventOnboarding() {
                   result={result.first}
                   date={result.request.date}
                   testId={result.second ? "compare-first" : "match-results"}
+                  loading={loading}
+                  onApplySuggestion={(action) => applySuggestion(action, result.request)}
                 />
                 {result.second && (
                   <MatchResults
                     result={result.second}
                     date={result.secondDate!}
                     testId="compare-second"
+                    loading={loading}
+                    onApplySuggestion={(action) => applySuggestion(action, { ...result.request, date: result.secondDate! })}
                   />
                 )}
                 <p className="result-footnote">
@@ -676,9 +630,10 @@ export function EventOnboarding() {
             )}
           </div>
           {error && (
-            <p className="step-error" role="alert">
-              {error}
-            </p>
+            <div className="step-error" role="alert">
+              <p>{error}</p>
+              {step >= 2 && <button className="retry-button" type="button" disabled={loading} onClick={retry}>Повторить подбор</button>}
+            </div>
           )}
           <div className="stage-actions">
             {step > 0 ? (
@@ -712,7 +667,7 @@ export function EventOnboarding() {
               </button>
             ) : (
               <button className="back" onClick={() => move(2)}>
-                Изменить условия <Icon name="arrow" size={16} />
+                Настроить новый подбор <Icon name="arrow" size={16} />
               </button>
             )}
           </div>
@@ -735,7 +690,7 @@ export function EventOnboarding() {
             </div>
           </section>
         </section>
-        {assistant && (
+        {assistant && step < 3 && (
           <OnboardingAssistant
             step={step}
             city={form.city}

@@ -110,9 +110,9 @@ describe('explanation evidence regression', () => {
         for (const card of cards) {
           const quoted = card.explanation.match(/В описании профиля: «(.*)»\.$/u)?.[1].replace(/…$/u, '');
           if (quoted) expect(vendors.find(v => v.id === card.id)?.description).toContain(quoted);
-          expect(card.explanation).toContain(`на ${date} занятость не отмечена`);
-          expect(card.explanation).toContain('цена от');
-          expect(card.explanation).toContain(`формат «${combination.eventType}»`);
+          expect(card.matched.join(' ')).toContain(`На ${date} занятость не отмечена`);
+          expect(card.priceFrom).toBeGreaterThanOrEqual(0);
+          expect(card.matched).toContain(`Формат: ${combination.eventType}`);
         }
       }
     }

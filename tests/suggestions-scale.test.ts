@@ -3,7 +3,7 @@ import type { Vendor } from '../lib/catalog';
 import type { MatchRequest } from '../lib/contract';
 import { money } from '../lib/explanations';
 import { matchingVerb, profileCount } from '../lib/wording';
-import { buildSuggestions, CALENDAR_END, CALENDAR_START, fitsNonDateConditions } from '../lib/suggestions';
+import { buildSuggestionOptions, buildSuggestions, CALENDAR_END, CALENDAR_START, fitsNonDateConditions } from '../lib/suggestions';
 
 const request: MatchRequest = { city: 'Алматы', date: '2026-11-14', eventType: 'свадьба', category: 'ведущий', budget: 100 };
 const vendor = (overrides: Partial<Vendor> = {}): Vendor => ({
@@ -40,9 +40,11 @@ function reference(input: MatchRequest, vendors: readonly Vendor[], currentCount
 describe('suggestions preserve exhaustive behavior at scale', () => {
   it('handles a million over-budget candidates without argument-stack overflow', () => {
     const vendors = Array.from({ length: 1_000_000 }, () => vendor({ priceFrom: 110 }));
-    expect(buildSuggestions(request, vendors, 0)).toEqual([
+    const result = buildSuggestionOptions(request, vendors, 0);
+    expect(result.suggestions).toEqual([
       'При бюджете +10 ₸ (до 110 ₸) подходят ещё 1000000 профилей: остальные условия сохранены. Цена «от»; итоговую стоимость уточните.',
     ]);
+    expect(result.suggestionActions).toEqual([{ label: 'Бюджет 110 ₸', changes: { budget: 110 } }]);
   });
 
   it('matches exhaustive search across dates, duplicates, prices and optional constraints', () => {

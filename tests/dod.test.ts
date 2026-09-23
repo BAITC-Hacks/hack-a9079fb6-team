@@ -38,7 +38,8 @@ describe('Firebird live acceptance criteria', () => {
     expect(new Set(cards.map(card => card.id)).size).toBe(cards.length);
     for (const card of cards) {
       expect(card.explanationSource).toBe('template');
-      expect(card.explanation).toContain('от');
+      expect(card.priceFrom).toBeGreaterThanOrEqual(0);
+      expect(card.matched.join(' ')).toContain('Цена от');
       expect(card.matched.length).toBe(card.total);
     }
   });

@@ -4,7 +4,7 @@ import { explainVendor } from './explanations';
 import { selectTopVendors } from './ranking';
 import { matchingVerb, profileCount } from './wording';
 import type { CatalogIndex } from './catalog-index';
-import { buildSuggestions, CALENDAR_END, CALENDAR_START } from './suggestions';
+import { buildSuggestionOptions, CALENDAR_END, CALENDAR_START } from './suggestions';
 
 type Filter = { step: string; reason: string; keep: (vendor: Vendor) => boolean };
 function filters(request: MatchRequest): Filter[] {
@@ -32,6 +32,7 @@ function emptyCategory(request: MatchRequest, vendors: readonly Vendor[], funnel
     outcome: 'no_category_in_city', message: `В городе «${request.city}» нет категории «${request.category}» в этом каталоге. Это отсутствие профилей, а не занятость на выбранную дату.`,
     cards: [], funnel: funnel.slice(0, 2), suggestions: cities.map(({ city, count }) =>
       `В городе «${city}» есть ${profileCount(count)} этой категории; дату и остальные условия нужно проверить отдельно.`),
+    suggestionActions: cities.map(({ city }) => ({ label: `Проверить в городе «${city}»`, changes: { city } })),
   };
 }
 
@@ -63,5 +64,5 @@ function matchPool(request: MatchRequest, vendors: readonly Vendor[], total: num
     : outcome === 'partial' ? `${matchingVerb(shown.length, true)} только ${profileCount(shown.length)} — меньше трёх.${exclusions ? ` В городе и категории: ${profileCount(funnel[1].left)}.` : ''}${detail}`
       : `В городе есть ${profileCount(funnel[1].left)} этой категории, но ни один не проходит все условия.${detail}`;
   return { outcome, message, cards: shown.map(vendor => explainVendor(vendor, shown, request)), funnel,
-    suggestions: buildSuggestions(request, vendors, pool.length) };
+    ...buildSuggestionOptions(request, vendors, pool.length) };
 }
