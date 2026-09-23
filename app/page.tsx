@@ -62,7 +62,10 @@ export default function Home() {
         const data = payload as CompareResponse;
         setResult({ request, first: data.first, second: data.second, secondDate, removed: data.removed });
       } else setResult({ request, first: payload as MatchResponse, removed: [] });
-      setTimeout(() => resultsRef.current?.focus({ preventScroll: true }), 0);
+      setTimeout(() => {
+        resultsRef.current?.focus({ preventScroll: true });
+        resultsRef.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      }, 0);
     } catch (cause: unknown) {
       if (active.current !== controller) return;
       setError(controller.signal.aborted ? 'Подбор занял больше 10 секунд. Попробуйте ещё раз.' : cause instanceof Error ? cause.message : 'Ошибка соединения. Попробуйте ещё раз.');
@@ -102,7 +105,7 @@ export default function Home() {
       </aside>
       <section className="results-panel" ref={resultsRef} tabIndex={-1} aria-label="Результаты подбора" aria-busy={loading}>
         <div className="results-top"><span className="eyebrow">02 / Подборка</span><span className="offline-label"><span />По данным каталога</span></div>
-        <div aria-live="polite" className="status-message">{loading ? 'Подбираем подрядчиков…' : result ? `Подбор завершён. ${result.first.message}` : ''}</div>
+        <div aria-live="polite" className={loading ? 'status-message' : 'sr-only'}>{loading ? 'Подбираем подрядчиков…' : result ? `Подбор завершён. ${result.first.message}` : ''}</div>
         {error && <div role="alert" className="error-box">{error}</div>}
         {dirty && <p className="stale-notice">Условия изменены. Нажмите кнопку подбора, чтобы обновить результат.</p>}
         {!result && !loading && <div className="initial-state"><div className="initial-symbol" aria-hidden="true">✳</div><h2>Хороший выбор начинается<br />с ваших условий</h2><p>Задайте дату, категорию и бюджет — проверим доступность и объясним каждую рекомендацию.</p><div className="initial-steps"><span>01 Проверим дату</span><span>02 Сопоставим условия</span><span>03 Объясним выбор</span></div></div>}
