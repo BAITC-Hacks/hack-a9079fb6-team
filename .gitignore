@@ -7,3 +7,9 @@ coverage/
 .DS_Store
 *.log
 .cache/
+*.tsbuildinfo
+playwright-report/
+test-results/
+.env.*
+!.env.example
+.playwright-cli/

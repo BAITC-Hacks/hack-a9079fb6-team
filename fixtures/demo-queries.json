@@ -1,8 +1,72 @@
 {
-  "_note": "Демо-запросы для жюри. Их же используют тесты и кнопки UI. expected заполняется после реализации ядра.",
-  "dense": { "city": "Алматы", "date": "2026-10-15", "eventType": "свадьба", "category": "Ведущий", "budget": 1000000, "expected": "TBD" },
-  "dense_other_date": { "city": "Алматы", "date": "2026-12-19", "eventType": "свадьба", "category": "Ведущий", "budget": 1000000, "expected": "TBD" },
-  "rare": { "city": "Алматы", "date": "2026-10-15", "eventType": "свадьба", "category": "Флорист", "budget": 300000, "expected": "TBD" },
-  "no_category_in_city": { "city": "Астана", "date": "2026-10-15", "eventType": "свадьба", "category": "Декоратор", "budget": 2000000, "expected": "no_category_in_city" },
-  "none_pass": { "city": "Алматы", "date": "2026-12-26", "eventType": "той", "category": "Банкетный зал", "budget": 1000000, "expected": "none_pass" }
+  "_note": "Демо-запросы для UI, тестов и жюри. expected: фактический результат детерминированного ядра; перед POST удалить expected.",
+  "dense": {
+    "city": "Алматы",
+    "date": "2026-10-15",
+    "eventType": "свадьба",
+    "category": "Ведущий",
+    "budget": 1000000,
+    "expected": {
+      "outcome": "matched",
+      "ids": [
+        "HK-35215",
+        "HK-42352",
+        "HK-44923"
+      ],
+      "totalCandidates": 5
+    }
+  },
+  "dense_other_date": {
+    "city": "Алматы",
+    "date": "2026-12-19",
+    "eventType": "свадьба",
+    "category": "Ведущий",
+    "budget": 1000000,
+    "expected": {
+      "outcome": "partial",
+      "ids": [
+        "HK-35215"
+      ],
+      "totalCandidates": 1
+    }
+  },
+  "rare": {
+    "city": "Алматы",
+    "date": "2026-10-15",
+    "eventType": "свадьба",
+    "category": "Флорист",
+    "budget": 300000,
+    "expected": {
+      "outcome": "partial",
+      "ids": [
+        "HK-90001",
+        "HK-39372"
+      ],
+      "totalCandidates": 2
+    }
+  },
+  "no_category_in_city": {
+    "city": "Астана",
+    "date": "2026-10-15",
+    "eventType": "свадьба",
+    "category": "Декоратор",
+    "budget": 2000000,
+    "expected": {
+      "outcome": "no_category_in_city",
+      "ids": [],
+      "totalCandidates": 0
+    }
+  },
+  "none_pass": {
+    "city": "Алматы",
+    "date": "2026-12-26",
+    "eventType": "той",
+    "category": "Банкетный зал",
+    "budget": 1000000,
+    "expected": {
+      "outcome": "none_pass",
+      "ids": [],
+      "totalCandidates": 0
+    }
+  }
 }
