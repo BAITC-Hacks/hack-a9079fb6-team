@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { getCatalogOptions } from './catalog';
+import type { CatalogOptions } from './contract';
 
 export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Дата должна иметь формат ГГГГ-ММ-ДД')
   .refine(value => {
@@ -7,8 +8,7 @@ export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Дата до
     return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
   }, 'Такой календарной даты нет');
 
-export function matchRequestSchema() {
-  const options = getCatalogOptions();
+export function matchRequestSchema(options: CatalogOptions = getCatalogOptions()) {
   const option = (values: string[]) => z.string().trim().refine(value => values.includes(value), 'Выберите значение из каталога');
   return z.object({
     city: option(options.cities), date: dateSchema,
@@ -19,4 +19,4 @@ export function matchRequestSchema() {
     wish: z.string().trim().max(1000).optional(),
   }).strict();
 }
-export const compareRequestSchema = () => z.object({ request: matchRequestSchema(), secondDate: dateSchema }).strict();
+export const compareRequestSchema = (options?: CatalogOptions) => z.object({ request: matchRequestSchema(options), secondDate: dateSchema }).strict();
