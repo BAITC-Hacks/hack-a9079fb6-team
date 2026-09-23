@@ -9,7 +9,7 @@ const outcomeLabels = {
 
 function VendorCard({ card, index }: { card: Card; index: number }) {
   return <article className="vendor-card" data-testid="match-card">
-    <div className="card-top"><span className="card-number">0{index + 1}</span><span className="match-count">Совпало {card.matched.length} из {card.total}</span></div>
+    <div className="card-top"><span className="card-number">0{index + 1}</span><span className="match-count">Условия: {card.matched.length} из {card.total}</span></div>
     <p className="card-category">{card.categories.join(' · ')}</p>
     <h3>{card.name}</h3>
     <p className="card-city">{card.city}</p>
@@ -32,6 +32,6 @@ export function MatchResults({ result, date, testId = 'match-results' }: { resul
     <div className="cards">{result.cards.map((card, index) => <VendorCard key={card.id} card={card} index={index} />)}</div>
     {result.cards.length === 0 && <div className="empty-result"><span aria-hidden="true">∅</span><p>Не добавляем неподходящие профили ради количества.</p></div>}
     {result.suggestions.length > 0 && <aside className="suggestions"><h3>Что можно изменить</h3><ul>{result.suggestions.map((item, i) => <li key={i}>{item}</li>)}</ul></aside>}
-    <details className="funnel" open><summary>Как прошёл отбор</summary><ol>{result.funnel.map((step, i) => <li key={`${step.step}-${i}`}><div className="funnel-line"><span>{step.step}</span><strong>{step.left} осталось</strong></div>{step.dropped.filter(item => item.count > 0).map((item, j) => <p key={j}>{item.reason}: −{item.count}</p>)}</li>)}</ol></details>
+    <details className="funnel"><summary>Как прошёл отбор</summary><ol>{result.funnel.map((step, i) => <li key={`${step.step}-${i}`}><div className="funnel-line"><span>{step.step}</span><strong>{step.left} осталось</strong></div>{step.dropped.filter(item => item.count > 0).map((item, j) => <p key={j}>{item.reason}: −{item.count}</p>)}</li>)}</ol></details>
   </section>;
 }

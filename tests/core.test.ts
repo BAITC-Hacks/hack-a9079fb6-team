@@ -97,6 +97,36 @@ describe('counterfactual suggestions preserve all other conditions', () => {
 });
 
 describe('explanation evidence regression', () => {
+  it('preserves distinct grounded quotes across catalog combinations and calendar days', () => {
+    const vendors = loadVendors();
+    const combinations = new Map(vendors.flatMap(v => v.categories.flatMap(category =>
+      v.eventFormats.map(eventType => [`${v.city}|${category}|${eventType}`, { city: v.city, category, eventType }] as const))));
+    for (const combination of combinations.values()) {
+      for (let day = 0; day < 100; day++) {
+        const date = new Date(Date.UTC(2026, 8, 23 + day)).toISOString().slice(0, 10);
+        const cards = matchVendors({ ...combination, date, budget: 1000000000 }, vendors).cards;
+        const texts = cards.map(card => card.explanation.replaceAll(card.name, ''));
+        expect(new Set(texts).size).toBe(cards.length);
+        for (const card of cards) {
+          const quoted = card.explanation.match(/В описании профиля: «(.*)»\.$/u)?.[1].replace(/…$/u, '');
+          expect(quoted).toBeTruthy();
+          expect(vendors.find(v => v.id === card.id)?.description).toContain(quoted);
+        }
+      }
+    }
+  });
+  it('leads with the distinguishing fact and keeps demo quotes brief', () => {
+    const cards = matchVendors(request).cards;
+    expect(cards[0].explanation).toMatch(/^Только у этого профиля среди показанных указан язык «английский»/u);
+    expect(cards[2].explanation).toMatch(/^Стартовая цена на 250 000 ₸ ниже/u);
+    for (const card of cards) {
+      const quote = card.explanation.match(/В описании профиля: «(.*)»\.$/u)?.[1];
+      expect(quote).toBeTruthy();
+      expect(quote!.length).toBeLessThanOrEqual(80);
+    }
+    expect(cards[0].explanation).toContain('Работает на казахском, русском и английском языках');
+    expect(cards[1].explanation).not.toContain('0 разводов');
+  });
   it('distinguishes real bands by lineup rather than repeated marketing intro', () => {
     const result = matchVendors({ ...request, category: 'Лайв-бэнд', eventType: 'корпоратив', budget: 1500000 });
     const first = result.cards.find(card => card.id === 'HK-23752');

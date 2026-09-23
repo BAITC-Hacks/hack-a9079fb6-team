@@ -24,17 +24,17 @@ function quote(vendor: Vendor, shown: readonly Vendor[], request: MatchRequest):
   const fragments = vendor.description.split(/(?<=[.!?])\s+|\n+|•/u)
     .map(text => text.trim()).filter(Boolean);
   const factStems = ['опыт', 'специализ', 'сценари', 'оформ', 'фото', 'автор', 'импровиза', 'лет',
-    'состав', 'вокал', 'квартет', 'барабан', 'гитар', 'саксофон', 'репертуар', 'заказ', 'оборудован'];
+    'состав', 'вокал', 'квартет', 'барабан', 'гитар', 'саксофон', 'репертуар', 'заказ', 'оборудован', 'язык'];
   const specificity = (text: string) => factStems.filter(stem => text.toLocaleLowerCase('ru').includes(stem)).length;
   const otherDescriptions = shown.filter(other => other.id !== vendor.id).map(other => other.description.toLocaleLowerCase('ru'));
   const distinctive = fragments.filter(text => specificity(text) > 0 &&
     otherDescriptions.every(description => !description.includes(text.toLocaleLowerCase('ru'))));
   const candidates = distinctive.length ? distinctive : fragments;
-  const usefulness = (text: string) => specificity(text) * 10 + relevance(text, request) * 5;
+  const usefulness = (text: string) => specificity(text) * 10 + relevance(text, request) * 5 - Math.max(0, text.length - 100) / 10;
   const sentence = [...candidates].sort((a, b) => usefulness(b) - usefulness(a))[0];
   if (!sentence) return '';
-  const clipped = sentence.length > 180;
-  const fragment = (clipped ? sentence.slice(0, 177).replace(/\s+\S*$/u, '') : sentence)
+  const clipped = sentence.length > 80;
+  const fragment = (clipped ? sentence.slice(0, 79).replace(/\s+\S*$/u, '') : sentence)
     .replace(/[.!?]+$/u, '');
   return ` В описании профиля: «${fragment}${clipped ? '…' : ''}».`;
 }
@@ -52,7 +52,7 @@ export function explainVendor(vendor: Vendor, shown: readonly Vendor[], request:
     id: vendor.id, name: vendor.name, categories: [...vendor.categories], city: vendor.city,
     priceFrom: vendor.priceFrom, synthetic: vendor.synthetic, cityImputed: vendor.cityImputed,
     priceImputed: vendor.priceImputed, matched, total: matched.length,
-    explanation: `В каталоге указан формат «${request.eventType}», цена от ${money(vendor.priceFrom)} ₸${vendor.priceImputed ? ' (оценочная)' : ''}; на ${request.date} занятость не отмечена; ${contrast(vendor, shown).toLocaleLowerCase('ru')}.${quote(vendor, shown, request)}`,
+    explanation: `${contrast(vendor, shown)}; формат «${request.eventType}», цена от ${money(vendor.priceFrom)} ₸${vendor.priceImputed ? ' (оценочная)' : ''}; на ${request.date} занятость не отмечена.${quote(vendor, shown, request)}`,
     explanationSource: 'template',
   };
 }
