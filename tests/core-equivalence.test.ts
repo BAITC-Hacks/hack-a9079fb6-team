@@ -115,6 +115,6 @@ describe('indexed matching against the original independent oracle', () => {
     const result = matchCatalog(query, createCatalogIndex(input));
     expect(result.outcome).toBe('matched');
     expect(result.cards.map(card => card.id)).toEqual(['00020', '00000', '00001']);
-    expect(result.message).toContain('Подходят 21 профилей');
+    expect(result.message).toContain('Подходит 21 профиль');
   });
 });

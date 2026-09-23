@@ -1,6 +1,7 @@
 import type { Vendor } from './catalog';
 import type { MatchRequest } from './contract';
 import { money } from './explanations';
+import { matchingVerb, profileCount } from './wording';
 
 export const CALENDAR_START = '2026-09-23';
 export const CALENDAR_END = '2026-12-31';
@@ -21,7 +22,7 @@ function nearestBetterDate(
       const candidate = new Date(date + direction * offset * 86400000).toISOString().slice(0, 10);
       if (candidate < CALENDAR_START || candidate > CALENDAR_END) continue;
       const count = poolSize - (busyCounts.get(candidate) ?? 0);
-      if (count > currentCount) return `На ${candidate} подходят ${count}: все остальные условия сохранены (сейчас ${currentCount}).`;
+      if (count > currentCount) return `На ${candidate} ${matchingVerb(count)} ${profileCount(count)}: все остальные условия сохранены (сейчас ${currentCount}).`;
     }
   }
   return null;
@@ -57,7 +58,7 @@ export function buildSuggestions(request: MatchRequest, vendors: readonly Vendor
   }
   const dateSuggestion = nearestBetterDate(request, poolSize, busyCounts, currentCount);
   const budgetSuggestion = added > 0
-    ? `При бюджете +${money(nextPrice - request.budget)} ₸ (до ${money(nextPrice)} ₸) подходят ещё ${added}: остальные условия сохранены. Цена «от»; итоговую стоимость уточните.`
+    ? `При бюджете +${money(nextPrice - request.budget)} ₸ (до ${money(nextPrice)} ₸) ${matchingVerb(added)} ещё ${profileCount(added)}: остальные условия сохранены. Цена «от»; итоговую стоимость уточните.`
     : null;
   return [dateSuggestion, budgetSuggestion].filter((item): item is string => item !== null);
 }

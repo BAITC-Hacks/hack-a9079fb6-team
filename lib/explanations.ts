@@ -1,6 +1,6 @@
 import type { Vendor } from './catalog';
 import type { Card, MatchRequest } from './contract';
-import { relevance } from './ranking';
+import { profileEvidence } from './evidence';
 
 export const money = (value: number): string => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
@@ -11,32 +11,21 @@ function contrast(vendor: Vendor, shown: readonly Vendor[]): string {
   if (uniqueLanguage) return `Только у этого профиля среди показанных указан язык «${uniqueLanguage}»`;
   const nextPrice = Math.min(...others.map(other => other.priceFrom));
   if (vendor.priceFrom < nextPrice) return `Стартовая цена на ${money(nextPrice - vendor.priceFrom)} ₸ ниже следующей среди показанных`;
-  const minPrice = Math.min(...others.map(other => other.priceFrom));
-  if (vendor.priceFrom > minPrice) return `Стартовая цена на ${money(vendor.priceFrom - minPrice)} ₸ выше минимальной среди показанных`;
   if (vendor.maxHours !== null && others.every(other => other.maxHours !== null && other.maxHours < vendor.maxHours!)) {
     return `До ${vendor.maxHours} ч против максимум ${Math.max(...others.map(other => other.maxHours!))} ч у других показанных`;
   }
-  return 'По стартовой цене нет преимущества перед другими показанными профилями';
+  const cheaper = others.filter(other => other.priceFrom < vendor.priceFrom);
+  if (vendor.maxHours !== null && cheaper.length && cheaper.every(other => other.maxHours !== null && other.maxHours < vendor.maxHours!)) {
+    return `До ${vendor.maxHours} ч против максимум ${Math.max(...cheaper.map(other => other.maxHours!))} ч у более дешёвых профилей среди показанных`;
+  }
+  return vendor.maxHours === null ? `Языки работы: ${vendor.languages.join(', ')}`
+    : `В каталоге указаны длительность до ${vendor.maxHours} ч и языки: ${vendor.languages.join(', ')}`;
 }
 
 /** Quote one useful source phrase; do not turn vendor advertising into our guarantee. */
 function quote(vendor: Vendor, shown: readonly Vendor[], request: MatchRequest): string {
-  const fragments = vendor.description.split(/(?<=[.!?])\s+|\n+|•/u)
-    .map(text => text.trim()).filter(Boolean);
-  const factStems = ['опыт', 'специализ', 'сценари', 'оформ', 'фото', 'автор', 'импровиза', 'лет',
-    'состав', 'вокал', 'квартет', 'барабан', 'гитар', 'саксофон', 'репертуар', 'заказ', 'оборудован', 'язык'];
-  const specificity = (text: string) => factStems.filter(stem => text.toLocaleLowerCase('ru').includes(stem)).length;
-  const otherDescriptions = shown.filter(other => other.id !== vendor.id).map(other => other.description.toLocaleLowerCase('ru'));
-  const distinctive = fragments.filter(text => specificity(text) > 0 &&
-    otherDescriptions.every(description => !description.includes(text.toLocaleLowerCase('ru'))));
-  const candidates = distinctive.length ? distinctive : fragments;
-  const usefulness = (text: string) => specificity(text) * 10 + relevance(text, request) * 5 - Math.max(0, text.length - 100) / 10;
-  const sentence = [...candidates].sort((a, b) => usefulness(b) - usefulness(a))[0];
-  if (!sentence) return '';
-  const clipped = sentence.length > 80;
-  const fragment = (clipped ? sentence.slice(0, 79).replace(/\s+\S*$/u, '') : sentence)
-    .replace(/[.!?]+$/u, '');
-  return ` В описании профиля: «${fragment}${clipped ? '…' : ''}».`;
+  const fragment = profileEvidence(vendor, shown, request);
+  return fragment ? ` В описании профиля: «${fragment}».` : '';
 }
 
 export function explainVendor(vendor: Vendor, shown: readonly Vendor[], request: MatchRequest): Card {

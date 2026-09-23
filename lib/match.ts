@@ -2,6 +2,7 @@ import { loadVendors, type Vendor } from './catalog';
 import type { MatchRequest, MatchResponse } from './contract';
 import { explainVendor } from './explanations';
 import { selectTopVendors } from './ranking';
+import { matchingVerb, profileCount } from './wording';
 import type { CatalogIndex } from './catalog-index';
 import { buildSuggestions, CALENDAR_END, CALENDAR_START } from './suggestions';
 
@@ -30,7 +31,7 @@ function emptyCategory(request: MatchRequest, vendors: readonly Vendor[], funnel
   return {
     outcome: 'no_category_in_city', message: `В городе «${request.city}» нет категории «${request.category}» в этом каталоге. Это отсутствие профилей, а не занятость на выбранную дату.`,
     cards: [], funnel: funnel.slice(0, 2), suggestions: cities.map(({ city, count }) =>
-      `В городе «${city}» есть ${count} профилей этой категории; дату и остальные условия нужно проверить отдельно.`),
+      `В городе «${city}» есть ${profileCount(count)} этой категории; дату и остальные условия нужно проверить отдельно.`),
   };
 }
 
@@ -58,9 +59,9 @@ function matchPool(request: MatchRequest, vendors: readonly Vendor[], total: num
   const detail = exclusions ? ` Последовательный отсев: ${exclusions}.` : ' В выбранном городе и категории больше профилей нет.';
   const outcome = shown.length === 3 ? 'matched' : shown.length > 0 ? 'partial' : 'none_pass';
   const message = outcome === 'matched'
-    ? `Подходят ${pool.length} профилей; показаны первые 3 по совпадениям в описании и условиям. Цены указаны «от», итоговую стоимость нужно уточнить.`
-    : outcome === 'partial' ? `Подходят только ${shown.length} из ${funnel[1].left} профилей — меньше трёх.${detail}`
-      : `В городе есть ${funnel[1].left} профилей этой категории, но ни один не проходит все условия.${detail}`;
+    ? `${matchingVerb(pool.length, true)} ${profileCount(pool.length)}; показаны первые 3 по совпадениям в описании и условиям. Цены указаны «от», итоговую стоимость нужно уточнить.`
+    : outcome === 'partial' ? `${matchingVerb(shown.length, true)} только ${profileCount(shown.length)} — меньше трёх.${exclusions ? ` В городе и категории: ${profileCount(funnel[1].left)}.` : ''}${detail}`
+      : `В городе есть ${profileCount(funnel[1].left)} этой категории, но ни один не проходит все условия.${detail}`;
   return { outcome, message, cards: shown.map(vendor => explainVendor(vendor, shown, request)), funnel,
     suggestions: buildSuggestions(request, vendors, pool.length) };
 }

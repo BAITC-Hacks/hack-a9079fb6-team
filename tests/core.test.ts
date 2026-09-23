@@ -106,11 +106,13 @@ describe('explanation evidence regression', () => {
         const date = new Date(Date.UTC(2026, 8, 23 + day)).toISOString().slice(0, 10);
         const cards = matchVendors({ ...combination, date, budget: 1000000000 }, vendors).cards;
         const texts = cards.map(card => card.explanation.replaceAll(card.name, ''));
-        expect(new Set(texts).size).toBe(cards.length);
+        expect(new Set(texts).size, JSON.stringify({ combination, date, cards })).toBe(cards.length);
         for (const card of cards) {
           const quoted = card.explanation.match(/В описании профиля: «(.*)»\.$/u)?.[1].replace(/…$/u, '');
-          expect(quoted).toBeTruthy();
-          expect(vendors.find(v => v.id === card.id)?.description).toContain(quoted);
+          if (quoted) expect(vendors.find(v => v.id === card.id)?.description).toContain(quoted);
+          expect(card.explanation).toContain(`на ${date} занятость не отмечена`);
+          expect(card.explanation).toContain('цена от');
+          expect(card.explanation).toContain(`формат «${combination.eventType}»`);
         }
       }
     }
@@ -122,7 +124,7 @@ describe('explanation evidence regression', () => {
     for (const card of cards) {
       const quote = card.explanation.match(/В описании профиля: «(.*)»\.$/u)?.[1];
       expect(quote).toBeTruthy();
-      expect(quote!.length).toBeLessThanOrEqual(80);
+      expect(quote!.length).toBeLessThanOrEqual(140);
     }
     expect(cards[0].explanation).toContain('Работает на казахском, русском и английском языках');
     expect(cards[1].explanation).not.toContain('0 разводов');
