@@ -1,0 +1,8 @@
+{
+  "_note": "Демо-запросы для жюри. Их же используют тесты и кнопки UI. expected заполняется после реализации ядра.",
+  "dense": { "city": "Алматы", "date": "2026-10-15", "eventType": "свадьба", "category": "Ведущий", "budget": 1000000, "expected": "TBD" },
+  "dense_other_date": { "city": "Алматы", "date": "2026-12-19", "eventType": "свадьба", "category": "Ведущий", "budget": 1000000, "expected": "TBD" },
+  "rare": { "city": "Алматы", "date": "2026-10-15", "eventType": "свадьба", "category": "Флорист", "budget": 300000, "expected": "TBD" },
+  "no_category_in_city": { "city": "Астана", "date": "2026-10-15", "eventType": "свадьба", "category": "Декоратор", "budget": 2000000, "expected": "no_category_in_city" },
+  "none_pass": { "city": "Алматы", "date": "2026-12-26", "eventType": "той", "category": "Банкетный зал", "budget": 1000000, "expected": "none_pass" }
+}
